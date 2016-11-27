@@ -1,5 +1,7 @@
 class CoursesController < ApplicationController
 
+  respond_to :html, :xls
+
   before_action :student_logged_in, only: [:select, :quit, :list]
   before_action :teacher_logged_in, only: [:new, :create, :edit, :destroy, :update]
   before_action :logged_in, only: :index
@@ -24,7 +26,21 @@ class CoursesController < ApplicationController
   def edit
     @course=Course.find_by_id(params[:id])
   end
+  #---------------close and open course
+  def close
+    @course=Course.find_by_id(params[:id])
+    @course.update_attributes(:open =>false)
+    redirect_to courses_path, flash: {:success => "已经成功关闭该课程：#{@course.name}"}
+  end
 
+  def open
+    @course=Course.find_by_id(params[:id])
+    @course.update_attributes(:open =>true)
+    redirect_to courses_path, flash: {:success => "已经成功开启该课程：#{@course.name}"}
+  end
+
+
+  #---------------
   def update
     @course = Course.find_by_id(params[:id])
     if @course.update_attributes(course_params)
@@ -46,14 +62,16 @@ class CoursesController < ApplicationController
   #-------------------------for students----------------------
 
   def list
-    @course=Course.all
-    @course=@course-current_user.courses
+    @courses=Course.all
+    @courses=@courses-current_user.courses
+
+    @courses=@courses.find_all{|obj|  obj.open }
   end
 
   def select
     @course=Course.find_by_id(params[:id])
     current_user.courses<<@course
-    flash={:suceess => "成功选择课程: #{@course.name}"}
+    flash={:suceess => "成功选择课程: #@course.name}"}
     redirect_to courses_path, flash: flash
   end
 
@@ -71,6 +89,13 @@ class CoursesController < ApplicationController
     @course=current_user.teaching_courses if teacher_logged_in?
     @course=current_user.courses if student_logged_in?
   end
+
+  def excel
+    @courses=current_user.teaching_courses if teacher_logged_in?
+    @courses=current_user.courses if student_logged_in?
+    respond_with @courses
+  end
+
 
 
   private
